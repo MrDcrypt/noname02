@@ -1,0 +1,92 @@
+from tkinter import Tk, Label, Frame
+from tkinter import ttk
+from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
+from matplotlib.figure import Figure
+from matplotlib.backends.backend_tkagg import NavigationToolbar2Tk
+import random
+import numpy as np
+
+def plot_data(temp_array, humidity_array):
+    fig = Figure(figsize=(6, 4), dpi=100)
+    ax1 = fig.add_subplot(111)
+
+    ax1.plot(temp_array, marker='o', linestyle='-', color='b', label='Temp.')
+    ax1.set_title('Temperatura y Humedad del Suelo')
+    ax1.set_xlabel('Tiempo')
+    ax1.set_ylabel('Temperatura °C', color='b')
+    ax1.set_ylim(0, 100)
+    ax1.set_yticks(np.arange(0, 101, 5))  # Establecer escalas de temperatura cada 5°C
+
+    ax2 = ax1.twinx()
+    ax2.plot(humidity_array, marker='s', linestyle='-', color='r', label='% Hum. Suelo')
+    ax2.set_ylabel('% Humedad del Suelo', color='r')
+    ax2.set_ylim(0, 100)
+    ax2.set_yticks(np.arange(0, 101, 5))  # Establecer escalas de humedad cada 5%
+
+    ax1.legend(loc='upper left')
+    ax2.legend(loc='upper right')
+
+    return fig
+
+temperature = 0
+soil_humidity = 0
+temp_array = [0] * 20
+humidity_array = [0] * 20
+
+def update_graph():
+    global temperature, temp_array, soil_humidity, humidity_array, canvas
+
+    # Generar datos aleatorios para la prueba
+    temperature = random.randint(20, 40)
+    soil_humidity = random.randint(30, 70)
+    temp_array = temp_array[1:] + [temperature]
+    humidity_array = humidity_array[1:] + [soil_humidity]
+
+    fig = plot_data(temp_array, humidity_array)
+
+    canvas.get_tk_widget().pack_forget()
+    canvas = FigureCanvasTkAgg(fig, master=graph_frame)
+    canvas.draw()
+    canvas.get_tk_widget().pack()
+
+    toolbar = NavigationToolbar2Tk(canvas, graph_frame)
+    toolbar.update()
+
+    progress_bar['value'] = temperature
+    progress_bar2['value'] = soil_humidity
+    progress_label.config(text=f"Temperatura: {temperature}°C")
+    progress_label2.config(text=f"% Humedad del Suelo: {soil_humidity}")
+
+    root.after(1000, update_graph)  # Actualiza cada 1000 ms (1 segundo)
+
+if __name__ == "__main__":
+    root = Tk()
+    root.title("SENSOR DHT11 Y FC-28")
+    root.geometry("1000x700")
+
+    style = ttk.Style()
+    style.configure("Custom.TLabel", background="blue", foreground="white")
+
+    graph_frame = Frame(root, width=400, height=400)
+    graph_frame.pack(side="right", anchor="ne", padx=10, pady=10)
+
+    progress_bar = ttk.Progressbar(graph_frame, orient="vertical", length=200, mode="determinate")
+    progress_bar.place(x=30, y=30)
+
+    progress_label = ttk.Label(graph_frame, text="Temperatura: 0°C", style="Custom.TLabel")
+    progress_label.place(x=10, y=230)
+
+    progress_bar2 = ttk.Progressbar(graph_frame, orient="vertical", length=200, mode="determinate")
+    progress_bar2.place(x=310, y=30)
+
+    progress_label2 = Label(graph_frame, text="% Humedad del Suelo: 0")
+    progress_label2.place(x=285, y=230)
+
+    fig = plot_data(temp_array, humidity_array)
+    canvas = FigureCanvasTkAgg(fig, master=graph_frame)
+    canvas.draw()
+    canvas.get_tk_widget().pack()
+
+    root.after(1000, update_graph)
+
+    root.mainloop()

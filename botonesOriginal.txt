@@ -1,0 +1,7 @@
+  """# Botón de opciones
+    options_image = PhotoImage(file="opciones.png")
+    options_button = Button(
+        frame_azul, image=options_image, bg="green", borderwidth=3)
+    # Asegura que el botón llene horizontalmente el frame
+    options_button.pack(fill="x", pady=20)
+    options_button.bind("<Button-1>", show_menu)"""

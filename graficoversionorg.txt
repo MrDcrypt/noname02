@@ -1,0 +1,81 @@
+def plot_data(temp_array, humidity_array):
+    fig = Figure(figsize=(7.6, 4), dpi=100)
+    ax1 = fig.add_subplot(111)
+
+    # Graficar temperatura
+    ax1.plot(temp_array, marker='o', linestyle='-', color='b', label='Temp.')
+    ax1.set_title('Temperatura y Humedad ambiente')
+    ax1.set_xlabel('Tiempo')
+    ax1.set_ylabel('Temperatura °C', color='b')
+    ax1.set_ylim(0, 100)
+    ax1.set_yticks(np.arange(0, 101, 5))
+
+    # Graficar humedad ambiental
+    ax2 = ax1.twinx()
+    ax2.plot(humidity_array, marker='s', linestyle='-',
+             color='r', label='% Hum. Ambiente')
+    ax2.set_ylabel('% Humedad del ambiente', color='r')
+    ax2.set_ylim(0, 100)
+    ax2.set_yticks(np.arange(0, 101, 5))
+
+    ax1.legend(loc='upper left')
+    ax2.legend(loc='upper right')
+
+    return fig
+
+
+# Arrays para almacenar datos de temperatura y humedad
+temp_array = [0] * 20
+humidity_array = [0] * 20
+soil_humidity = 0  # Variable para almacenar la humedad del suelo
+
+
+def update_graph():
+    global ser
+    global temp_array, humidity_array, soil_humidity, canvas
+
+    if ser is None or not ser.is_open:
+        return
+
+    if ser.in_waiting > 0:
+        data = ser.readline().decode(errors='ignore').strip()
+        try:
+            # Verifica que los datos sigan el formato "T:temperatura,S:humedad_ambiental"
+            if data.startswith("T:") and ",S:" in data:
+                # Separa los valores de temperatura y humedad del ambiente
+                temp_str = data.split(",")[0].replace("T:", "")
+                humedad_ambiental = data.split(",")[1].replace("S:", "")
+
+                # Convertir a float para los valores leídos del DHT11
+                temperatura = float(temp_str)
+                humedad_amb = float(humedad_ambiental)
+
+                temp_array.append(temperatura)
+                humidity_array.append(humedad_amb)
+
+                # Limita el tamaño de las listas a los últimos 20 valores
+                temp_array = temp_array[-20:]
+                humidity_array = humidity_array[-20:]
+
+                # Actualizar el gráfico de temperatura y humedad del ambiente
+                fig = plot_data(temp_array, humidity_array)
+                canvas.get_tk_widget().pack_forget()
+                canvas = FigureCanvasTkAgg(fig, master=graph_frame)
+                canvas.draw()
+                canvas.get_tk_widget().pack()
+
+                # Actualiza solo la barra de progreso de temperatura
+                progress_bar['value'] = temperatura
+                progress_label.config(text=f"T: {temperatura:.1f}°C")
+
+            else:
+                # Si el dato no corresponde a la temperatura/humedad ambiente, se asume que es la humedad del suelo
+                soil_humidity = int(data)
+                progress_label2.config(text=f"Soil HMD: {soil_humidity}%")
+                progress_bar2['value'] = soil_humidity
+
+        except ValueError:
+            print("Error: Could not parse data")
+
+    # Llama a update_graph nuevamente después de 1000 ms
+    root.after(1000, update_graph)
